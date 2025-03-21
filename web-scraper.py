@@ -43,8 +43,19 @@ def getShelfFromPage(html):
 
   return shelf
 
-
-
+def getCheapest():
+  len_shelf = len(shelf_global)
+  trans = str.maketrans({',':'.','.':''})
+  min = float(shelf_global[0][2][1:].translate(trans))
+  i = 1
+  index = 0
+  while(i<len_shelf):
+    price_f = float(shelf_global[i][2][1:].translate(trans))
+    if(price_f < min):
+      min = price_f
+      index = i
+    i = i+1
+  return index
 if __name__ == "__main__":
   page_url = base_url + '/kitaplik?sayfa='
   for i in range(1,200):
@@ -54,9 +65,4 @@ if __name__ == "__main__":
     else:
       shelf_global = shelf_global + (getShelfFromPage(html))
   
-  k = 1
-  for i in shelf_global:
-    print(str(k)+'.', end='')
-    k = k+1
-    for j in i:
-      print('\t'+ j)
+  print(shelf_global[getCheapest()])
