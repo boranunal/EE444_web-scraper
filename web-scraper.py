@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup as bs
 import json
 
 # host name, entry point
-base_url = 'https://www.odtuden.com.tr'
+base_url = 'https://www.odtuden.com.tr/kitaplik'
 
 # create a global list
 shelf_global = []
@@ -104,7 +104,7 @@ def getCart():
   print(products)
 
 if __name__ == "__main__":
-  page_url = base_url + '/kitaplik?sayfa='
+  page_url = base_url + '?sayfa='
   for i in range(1,2):
     html = getHTML(page_url+str(i))
     if(html==0):
