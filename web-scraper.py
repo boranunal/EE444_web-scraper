@@ -10,9 +10,9 @@ shelf_global = []
 
 bookNumber = 0
 
-def getHTML(url):
+def getHTML(session, url):
     # request the page
-  res = requests.get(url, allow_redirects=False)
+  res = session.get(url, allow_redirects=False)
   if(res.status_code == 200):
     # get the content from the respond message
     html = res.content
@@ -81,7 +81,7 @@ def getItemInfo(html):
 
   return UrunId, UrunKartId
 
-def addItemToCart(UrunId, UrunKartId):
+def addItemToCart(UrunId, UrunKartId, session):
   url = 'https://www.odtuden.com.tr/api/cart/AddToCartV3'
   item = {
   "Adet" : 1,
@@ -94,19 +94,38 @@ def addItemToCart(UrunId, UrunKartId):
   "UrunKartId" : UrunKartId,
   "UrunNot" : ""
   }
-  res = requests.post(url, json=item)
+  res = session.post(url, json=item)
   print(f'response status code for added item: {res.status_code}')
 
-def getCart():
+def getCart(session):
   url = 'https://www.odtuden.com.tr/api/cart/GetMemberCart'
-  res = requests.get(url)
-  products = json.loads(res.content)['cart']['totalNumberProducts']
-  print(products)
+  res = session.get(url)
+  cart = json.loads(res.content)['cart']
+  item_count = int(cart['totalNumberProducts'])
+  print(f'Number of items in the cart: {item_count}')
+  if(item_count > 0):
+    basketProductId = cart['products'][0]['basketProductId']
+    print(f'basketProductId: {basketProductId}')
+    return basketProductId
+  else:
+    return 0 
+def removeFromCart(session, UrunId, basketProductId):
+  url = 'https://www.odtuden.com.tr/api/cart/RemoveProduct'
+  item = {"VariantId": UrunId,
+          "BasketProductId": basketProductId,
+          "CampaignId": 0,
+          "Quantity": 1,
+          "VirtualProduct": False,
+          "VirtualProduct2": False
+          }
+  res = session.post(url, json=item)
+  print(f'response status code for removed item: {res.status_code}')
 
 if __name__ == "__main__":
+  session = requests.Session()
   page_url = base_url + '/kitaplik?sayfa='
   for i in range(1,2):
-    html = getHTML(page_url+str(i))
+    html = getHTML(session, page_url+str(i))
     if(html==0):
       break
     else:
@@ -117,8 +136,12 @@ if __name__ == "__main__":
     print(shelf_global[getCheapest()][i])
 
   cheap_url = shelf_global[getCheapest()][1]
-  cheap_html = getHTML(cheap_url)
+  cheap_html = getHTML(session, cheap_url)
   UrunId, UrunKartId = getItemInfo(cheap_html)
   print('UrunId:', UrunId, '\nUrunKartId:', UrunKartId)
-  addItemToCart(UrunId, UrunKartId)
-  getCart()
+  addItemToCart(UrunId, UrunKartId, session)
+  basketProductId = getCart(session)
+  if(basketProductId != 0):
+    removeFromCart(session, UrunId, basketProductId)
+    getCart(session)
+ 
