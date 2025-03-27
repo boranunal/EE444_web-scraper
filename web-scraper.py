@@ -77,7 +77,7 @@ def getItemInfo(html):
 
   soup = bs(html, 'html.parser')
 
-  productDetail = soup.find("script", type="text/javascript",string=lambda t: t.find("productDetailModel") != -1)
+  productDetail = soup.find("script", type="text/javascript",string=lambda t: t and t.find("productDetailModel") != -1)
   productDetail = productDetail.get_text().splitlines()[2]
   productDetail = productDetail.split(";")[0].removeprefix("var productDetailModel = ")
   productDetail = json.loads(productDetail)
