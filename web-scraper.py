@@ -2,24 +2,28 @@ import requests
 from bs4 import BeautifulSoup as bs 
 import json
 
-# host name, entry point
+# host url
 base_url = 'https://www.odtuden.com.tr'
 
-# create a global list
+# create a global list of the books
 shelf_global = []
 
+# keep the number of books in the list
 bookNumber = 0
 
+# returns page content
 def getHTML(session, url):
-    # request the page
+  # request the page, disable redirects
   res = session.get(url, allow_redirects=False)
   if(res.status_code == 200):
     # get the content from the respond message
     html = res.content
     return html
+  # if response status code is not 200 return 0
   else:
     return 0
 
+# returns list of tuples from an html
 def getShelfFromPage(html):
   global bookNumber   # to count the books
   # create a list
@@ -68,6 +72,7 @@ def getCheapest():
     i = i+1
   return index
 
+# returns UrunId and UrunKartId
 def getItemInfo(html):
 
   soup = bs(html, 'html.parser')
@@ -81,6 +86,7 @@ def getItemInfo(html):
 
   return UrunId, UrunKartId
 
+# function with a well explanatory name
 def addItemToCart(UrunId, UrunKartId, session):
   url = 'https://www.odtuden.com.tr/api/cart/AddToCartV3'
   item = {
@@ -97,18 +103,23 @@ def addItemToCart(UrunId, UrunKartId, session):
   res = session.post(url, json=item)
   print(f'response status code for added item: {res.status_code}')
 
-def getCart(session):
+# returns BasketProductId which is needed to remove an item from cart
+def getBasketProductId(session):
   url = 'https://www.odtuden.com.tr/api/cart/GetMemberCart'
   res = session.get(url)
   cart = json.loads(res.content)['cart']
   item_count = int(cart['totalNumberProducts'])
   print(f'Number of items in the cart: {item_count}')
+  # if there is an item in the basket returns the first items basketProductId
   if(item_count > 0):
     basketProductId = cart['products'][0]['basketProductId']
     print(f'basketProductId: {basketProductId}')
     return basketProductId
+  # if there is no item return 0
   else:
     return 0 
+
+# remove item from cart
 def removeFromCart(session, UrunId, basketProductId):
   url = 'https://www.odtuden.com.tr/api/cart/RemoveProduct'
   item = {"VariantId": UrunId,
@@ -122,26 +133,35 @@ def removeFromCart(session, UrunId, basketProductId):
   print(f'response status code for removed item: {res.status_code}')
 
 if __name__ == "__main__":
+  # start a session to keep cart state
   session = requests.Session()
   page_url = base_url + '/kitaplik?sayfa='
-  for i in range(1,2):
+  for i in range(1,200):
     html = getHTML(session, page_url+str(i))
+    # getHTML returns 0 if response status code is not 200
     if(html==0):
       break
+    # if the response is OK get the list of books from a page 
+    # and append it to the global list of books
     else:
       shelf_global = shelf_global + (getShelfFromPage(html))
-
+  # print the info about the cheapest book
   print('CHEAPEST BOOK: ')
   for i in range(3):
     print(shelf_global[getCheapest()][i])
 
+  # extract info about the cheapest book to add to cart
   cheap_url = shelf_global[getCheapest()][1]
   cheap_html = getHTML(session, cheap_url)
   UrunId, UrunKartId = getItemInfo(cheap_html)
   print('UrunId:', UrunId, '\nUrunKartId:', UrunKartId)
+  
+  # add cheapest book to cart
   addItemToCart(UrunId, UrunKartId, session)
-  basketProductId = getCart(session)
+
+  # remove item from the cart
+  basketProductId = getBasketProductId(session)
   if(basketProductId != 0):
     removeFromCart(session, UrunId, basketProductId)
-    getCart(session)
+    getBasketProductId(session)
  
